@@ -18,7 +18,15 @@ vector3Rotate' theta v =
       rotateTheta 2 v = vector3 (vector3X v) (-(vector3Y v)) (-(vector3Z v)) 
       rotateTheta 3 v = vector3 (vector3X v) (-(vector3Z v))   (vector3Y v)
       rotateTheta i _ = rotateTheta (abs $ i `mod` 4) v
-  in rotateTheta theta $ v
+  in rotateTheta theta $ v 
+
+vector3Rotate' phi v =
+  let rotatePhi 0 v = id v                                
+      rotatePhi 1 v = vector3 (vector3X v) (vector3Z v)    (-(vector3Y v))
+      rotatePhi 2 v = vector3 (vector3X v) (-(vector3Y v)) (-(vector3Z v)) 
+      rotatePhi 3 v = vector3 (vector3X v) (-(vector3Z v))   (vector3Y v)
+      rotatePhi i _ = rotatePhi (abs $ i `mod` 4) v
+  in rotatePhi phi $ v
 
 -- TODO: Memoize
 size :: Level -> Integer

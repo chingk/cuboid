@@ -19,13 +19,15 @@ data Input = Keyboard { key       :: Key,
                         keyState  :: KeyState,
                         modifiers :: Modifiers }
 
-data GameState = Game { level     :: Level,
+data GameState = Game { level     :: Level,   --球在哪裡
                         rotX      :: R, 
+                        rotY      :: R, 
                         playerPos :: Vector3 R }
 
 data ParsedInput = 
     ParsedInput { wCount :: Double, aCount :: Double, 
                   sCount :: Double, dCount :: Double,
                   upEvs  :: Event Input, downEvs :: Event Input, 
-                  rightEvs :: Event Input, leftEvs :: Event Input }
+                  rightEvs :: Event Input, leftEvs :: Event Input ,
+                  periodEvs :: Event Input, commaEvs :: Event Input }
 

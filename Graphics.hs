@@ -50,22 +50,37 @@ resizeScene s@(Size width height) = do
 -- Rendering Code:
 
 renderGame :: GameState -> IO ()
-renderGame (Game l rotX pPos) = do
+renderGame (Game l rotX rotY pPos) = do
     loadIdentity
     translate $ G.Vector3 (0 :: R) 0 (-2*(fromInteger $ size l))
     -- TODO: calculate rotation axis based on rotX/Y
-    rotate (rotX * 10) xAxis
-    color $ Color3 (1 :: R) 1 1
-    position (Light 0) $= Vertex4 0 0 0 1
+    rotate (rotX * 10) xAxis --旋轉的角度繞x
+    rotate (rotY * 10) yAxis
+    color $ Color3 (1 :: R) 1 1 
+    position (Light 0) $= Vertex4 0 0 0 1   --light打光,劃線的function也是＋在這邊
     renderObject Wireframe (Cube $ fromInteger $ size l)
     renderPlayer pPos
     renderGoal (p3DtoV3 $ endPoint l)
     mapM_ (renderObstacle . p3DtoV3) $ obstacles l
+    (color red >>) .renderPrimitive Lines $ do
+                              vertex $ Vertex3 (0.0::R) 0.0 0.0
+                              vertex $ Vertex3 (3.0::R) 0.0 0.0 
+    (color blue >>) .renderPrimitive Lines $ do
+                              vertex $ Vertex3 (0.0::R) 0.0 0.0 
+                              vertex $ Vertex3 (0.0::R) 3.0 0.0 
+
+    (color green >>) .renderPrimitive Lines $ do
+                              vertex $ Vertex3 (0.0::R) 0.0 0.0 
+                              vertex $ Vertex3 (0.0::R) 0.0 3.0 
+                              --vertex $ Vertex3 size2 0.0 0.0 
+ 
+
     where size2 :: R
           size2 = (fromInteger $ size l)/2
           green  = Color4 0.8 1.0 0.7 0.9 :: Color4 R
           greenG = Color4 0.8 1.0 0.7 1.0 :: Color4 R
           red    = Color4 1.0 0.7 0.8 1.0 :: Color4 R
+          blue  = Color4 0.7 0.7 1.0 1.0 :: Color4 R
           renderShapeAt s p = preservingMatrix $ do
             translate $ G.Vector3 (0.5 - size2 + vector3X p)
                                   (0.5 - size2 + vector3Y p)
@@ -73,8 +88,9 @@ renderGame (Game l rotX pPos) = do
             renderObject Solid s
           renderObstacle = (color green >>) . (renderShapeAt $ Cube 1)
           renderPlayer   = (color red >>) . (renderShapeAt $ Sphere' 0.5 20 20)
-          renderGoal     =
-            (color greenG >>) . (renderShapeAt $ Sphere' 0.5 20 20)
+          renderGoal     = (color greenG >>) . (renderShapeAt $ Sphere' 0.5 20 20)
+          
+  
 
 draw :: SF GameState (IO ())
 draw = arr $ (\gs -> do

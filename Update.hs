@@ -14,7 +14,7 @@ import Config
 import Input
 
 -- Logic
-data WinLose = Win | Lose deriving (Eq)
+data WinLose = Win | Lose deriving (Eq) --遊戲是否過關
 
 -- Snapping integral
 integral' = (iPre zeroVector &&& time) >>> sscan f (zeroVector, 0) >>> arr fst
@@ -25,10 +25,10 @@ integral' = (iPre zeroVector &&& time) >>> sscan f (zeroVector, 0) >>> arr fst
                 (prevVal ^+^ (realToFrac $ time - prevTime) *^ val, time)
 
 update :: SF ParsedInput GameState
-update = proc pi@(ParsedInput{ wCount, aCount, sCount, dCount }) -> do
-    rec speed    <- rSwitch selectSpeed -< ((pi, pos, speed, obstacles level),
+update = proc pi@(ParsedInput{ wCount, aCount, sCount, dCount }) -> do -- signal func 丟進來是parse input pi@ 用小老鼠來代表後面那一長串
+    rec speed    <- rSwitch selectSpeed -< ((pi, pos, speed, obstacles level), --rec recursive的 用法 speed 坐右邊都有posi左右邊也有
                                             winLose `tag` selectSpeed)
-        posi     <- drSwitch (integral') -< (speed, winLose `tag` integral')
+        posi     <- drSwitch (integral') -< (speed, winLose `tag` integral')--winLose不用動到它
         pos      <- arr calculatePPos -< (posi, level)
         winLose  <- arr testWinLoseCondition -< (pos, level)
         wins     <- arr (filterE (==Win)) >>> delayEvent 1 -< winLose
@@ -37,6 +37,7 @@ update = proc pi@(ParsedInput{ wCount, aCount, sCount, dCount }) -> do
     -- TODO: watch for leak on wCount/aCount/sCount/dCount
     returnA -< Game { level     = level,
                       rotX      = realToFrac (wCount - sCount),
+                      rotY      = realToFrac (aCount - dCount),
                       playerPos = pos }
 
     where calculatePPos (pos, level) = pos ^+^ (p3DtoV3 $ startingPoint level)
@@ -54,15 +55,21 @@ update = proc pi@(ParsedInput{ wCount, aCount, sCount, dCount }) -> do
 selectSpeed :: SF (ParsedInput, Vector3 R, Vector3 R, [Point3D])
                   (Vector3 R)
 selectSpeed = proc (pi, pos, speed, obss) -> do
-    let rotX = (fromInteger $ (floor $ (wCount pi) - (sCount pi))
+    let rotX = (fromInteger $ (floor $ (wCount pi) - (sCount pi)) 
                                 `mod` 36 + 36) `mod` 36
-        theta = (((rotX - 6) `div` 9) + 1) `mod` 4
+        rotY = (fromInteger $ (floor $ (aCount pi) - (dCount pi)) 
+                                `mod` 36 + 36) `mod` 36
+        theta = (((rotX - 6) `div` 9) + 1) `mod` 4 --theta這邊改旋轉角度
+        phi = (((rotY - 6) `div` 9) + 1) `mod` 4
+
     -- TODO: Get rid of the undefined?
     speedC <- drSwitch (constant zeroVector) -<
-        (undefined, tagKeys (upEvs pi) speed ((-v) *^ zAxis) theta `merge`
-                    tagKeys (downEvs pi) speed (v *^ zAxis) theta `merge`
+        (undefined, tagKeys (upEvs pi) speed ((-v) *^ zAxis) theta `merge` --只對x 轉theta的旋轉而已
+                    tagKeys (downEvs pi) speed (v *^ zAxis) theta `merge`  --要對y 轉 fi
                     tagKeys (leftEvs pi) speed ((-v) *^ xAxis) theta `merge`
-                    tagKeys (rightEvs pi) speed (v *^ xAxis) theta)
+                    tagKeys (rightEvs pi) speed (v *^ xAxis) theta `merge`
+                    tagKeys (periodEvs pi) speed (v *^ yAxis) phi `merge`
+                    tagKeys (commaEvs pi) speed (v *^ yAxis) phi)
     cols   <- collision ^>> boolToEvent -< (obss, pos, speedC)
     speedf <- rSwitch (constant zeroVector) -< (speedC, tagCols cols)
     returnA -< speedf
